@@ -46,6 +46,13 @@ jobs:
           echo "All build attempts failed"
           exit 1
 
+      - name: Find built files
+        shell: bash
+        run: |
+          echo "=== Searching for build outputs ==="
+          find src-tauri/target/release -name "*.exe" -o -name "*.msi" 2>/dev/null || echo "No files found"
+          ls -R src-tauri/target/release/bundle/ 2>/dev/null || echo "No bundle dir"
+          ls -R src-tauri/target/release/ 2>/dev/null | head -50 || echo "No release dir"
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -53,3 +60,5 @@ jobs:
           path: |
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/*.exe
+          if-no-files-found: warn
