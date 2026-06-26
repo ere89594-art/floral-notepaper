@@ -33,12 +33,18 @@ jobs:
         run: node scripts/fetch-contributors.mjs
 
       - name: Build Tauri (Windows)
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tauriScript: pnpm tauri
-          args: --target x86_64-pc-windows-msvc
+        shell: bash
+        run: |
+          # retry up to 3 times for network flakes
+          for i in 1 2 3; do
+            echo "=== Build attempt $i/3 ==="
+            pnpm tauri build --target x86_64-pc-windows-msvc && exit 0
+            echo "Build attempt $i failed, retrying..."
+            cargo clean 2>/dev/null || true
+            sleep 5
+          done
+          echo "All build attempts failed"
+          exit 1
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
