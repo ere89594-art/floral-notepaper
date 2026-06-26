@@ -199,8 +199,9 @@
       "close": "关闭",
       "openInEditor": "在编辑器中打开",
       "pinToTile": "转为磁贴",
-      "previewMode": "预览 Markdown 渲染",
-      "editMode": "切换到编辑模式"
+      "editMode": "编辑模式",
+      "livePreviewMode": "实时预览 Markdown（分屏）",
+      "previewOnlyMode": "纯预览模式"
     }
   },
   "settings": {

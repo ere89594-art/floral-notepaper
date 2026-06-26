@@ -199,8 +199,9 @@
       "close": "Close",
       "openInEditor": "Open in Editor",
       "pinToTile": "Pin to Tile",
-      "previewMode": "Preview Markdown",
-      "editMode": "Switch to Edit Mode"
+      "editMode": "Edit Mode",
+      "livePreviewMode": "Live Preview Markdown (Split)",
+      "previewOnlyMode": "Preview Only"
     }
   },
   "settings": {

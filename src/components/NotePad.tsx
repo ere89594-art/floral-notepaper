@@ -141,7 +141,7 @@ export function NotePad({
   const [tileRenderMarkdown, setTileRenderMarkdown] = useState(false);
   const [tileDoubleClickToEdit, setTileDoubleClickToEdit] = useState(false);
   const [tileSaveReturnsToPin, setTileSaveReturnsToPin] = useState(false);
-  const [padPreviewMode, setPadPreviewMode] = useState(false);
+  const [padViewMode, setPadViewMode] = useState<"edit" | "live" | "preview">("edit");
   const [tileColor, setTileColor] = useState(() =>
     resolveTileColor("system", normalizeTileColor(initialTileColor)),
   );
@@ -748,22 +748,35 @@ export function NotePad({
 
               <div className="ml-auto flex items-center gap-1.5">
                 <button
-                  onClick={() => setPadPreviewMode(!padPreviewMode)}
+                  onClick={() =>
+                    setPadViewMode(
+                      padViewMode === "edit" ? "live" : padViewMode === "live" ? "preview" : "edit",
+                    )
+                  }
                   className={`group w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-200 cursor-pointer ${
-                    padPreviewMode
+                    padViewMode !== "edit"
                       ? "text-bamboo bg-bamboo/10"
                       : "text-ink-ghost hover:text-ink-faint hover:bg-paper-warm"
                   }`}
                   title={
-                    padPreviewMode
-                      ? t("notepad.tooltip.editMode", { defaultValue: "切换到编辑模式" })
-                      : t("notepad.tooltip.previewMode", { defaultValue: "切换预览Markdown" })
+                    padViewMode === "edit"
+                      ? t("notepad.tooltip.livePreviewMode", { defaultValue: "实时预览 Markdown（分屏）" })
+                      : padViewMode === "live"
+                        ? t("notepad.tooltip.previewOnlyMode", { defaultValue: "纯预览模式" })
+                        : t("notepad.tooltip.editMode", { defaultValue: "切换到编辑模式" })
                   }
                 >
-                  {padPreviewMode ? (
+                  {padViewMode === "edit" ? (
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      <rect x="3" y="3" width="7" height="18" rx="1" />
+                      <rect x="14" y="3" width="7" height="18" rx="1" />
+                    </svg>
+                  ) : padViewMode === "live" ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="7" height="7" rx="1" />
+                      <rect x="14" y="3" width="7" height="7" rx="1" />
+                      <rect x="3" y="14" width="7" height="7" rx="1" />
+                      <rect x="14" y="14" width="7" height="7" rx="1" />
                     </svg>
                   ) : (
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -820,7 +833,7 @@ export function NotePad({
                 data-pad-editor-body="true"
                 className="px-4 pt-3 pb-2 flex flex-col flex-1 min-h-0"
               >
-                {padPreviewMode ? (
+                {padViewMode === "preview" ? (
                   <div className="flex-1 min-h-0 overflow-y-auto">
                     {title && (
                       <div
@@ -836,6 +849,52 @@ export function NotePad({
                       renderHtml={false}
                       imageBaseDir={imageBaseDir ?? undefined}
                     />
+                  </div>
+                ) : padViewMode === "live" ? (
+                  <div className="flex-1 min-h-0 flex flex-col gap-0">
+                    <div className="flex-[1] min-h-0 flex flex-col border-b border-paper-deep/30 pb-2">
+                      <input
+                        ref={titleRef}
+                        type="text"
+                        value={title}
+                        onChange={(e) => { setTitle(e.target.value); setStatus("dirty"); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === "ArrowDown") { e.preventDefault(); contentRef.current?.focus(); } }}
+                        placeholder={t("notepad.placeholder.title", { defaultValue: "标题（可选）" })}
+                        className="w-full font-display font-medium text-ink placeholder:text-ink-ghost/60 mb-1 tracking-wide shrink-0"
+                        style={{ fontSize: `${surfaceFontSize}px` }}
+                      />
+                      <textarea
+                        ref={contentRef}
+                        data-tab-indent="true"
+                        value={content}
+                        onChange={(e) => { setContent(e.target.value); setStatus("dirty"); }}
+                        onPaste={imagePasteHandler}
+                        onDrop={imageDropHandler}
+                        onDragOver={imageDragOverHandler}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp") {
+                            const ta = contentRef.current;
+                            if (ta && ta.selectionStart === ta.selectionEnd) {
+                              if (!content.slice(0, ta.selectionStart).includes("\n")) {
+                                e.preventDefault();
+                                titleRef.current?.focus();
+                              }
+                            }
+                          }
+                        }}
+                        placeholder={t("notepad.placeholder.content", { defaultValue: "写点什么……" })}
+                        className="w-full flex-1 min-h-0 leading-relaxed text-ink-soft font-body placeholder:text-ink-ghost/50"
+                        style={{ fontSize: `${surfaceFontSize}px`, tabSize: `var(--tab-indent-size, 2)` }}
+                      />
+                    </div>
+                    <div className="flex-[1] min-h-0 overflow-y-auto pt-1">
+                      <MarkdownPreview
+                        content={content}
+                        fontSize={surfaceFontSize}
+                        renderHtml={false}
+                        imageBaseDir={imageBaseDir ?? undefined}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <>
