@@ -141,6 +141,7 @@ export function NotePad({
   const [tileRenderMarkdown, setTileRenderMarkdown] = useState(false);
   const [tileDoubleClickToEdit, setTileDoubleClickToEdit] = useState(false);
   const [tileSaveReturnsToPin, setTileSaveReturnsToPin] = useState(false);
+  const [tileViewMode, setTileViewMode] = useState<"edit" | "live" | "preview">("preview");
   const [padViewMode, setPadViewMode] = useState<"edit" | "live" | "preview">("edit");
   const [tileColor, setTileColor] = useState(() =>
     resolveTileColor("system", normalizeTileColor(initialTileColor)),
@@ -673,29 +674,80 @@ export function NotePad({
   return (
     <div className={surfaceWrapperClassName}>
       {isTile ? (
-        <Tile
-          title={tileTitle || undefined}
-          content={content}
-          color={tileColor}
-          fontSize={surfaceFontSize}
-          renderMarkdown={tileRenderMarkdown}
-          imageBaseDir={imageBaseDir ?? undefined}
-          width="100%"
-          className="h-full cursor-default"
-          data-surface-mode={surfaceMode}
-          data-context-menu="tile"
-          data-note-id={tileNoteId}
-          onMouseDown={handleDrag}
-          onDoubleClick={handleTileDoubleClick}
-        >
-          <button
-            type="button"
-            aria-label="取消钉屏"
-            title="取消钉屏"
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={() => void handleClose()}
-            className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full text-ink-ghost/70 hover:text-red-400 hover:bg-danger-bg/80 transition-colors cursor-pointer"
-          >
+        <>
+          {tileViewMode === "edit" ? (
+            <div className="w-full h-screen flex flex-col bg-[var(--tile-bg)] p-4">
+              <textarea
+                data-tab-indent="true"
+                value={content}
+                onChange={(e) => { setContent(e.target.value); setStatus("dirty"); }}
+                placeholder={t("notepad.placeholder.content", { defaultValue: "写点什么……" })}
+                className="w-full flex-1 min-h-0 bg-transparent text-ink-soft resize-none outline-none font-body leading-relaxed"
+                style={{ fontSize: `${surfaceFontSize}px` }}
+              />
+              <div className="flex items-center justify-between mt-2 shrink-0">
+                <span className="text-[11px] text-ink-ghost font-mono">
+                  {`${countNoteChars(content)} ${t("common.wordCountUnit", { defaultValue: "字" })}`}
+                </span>
+                <button
+                  onClick={() => void handleSave()}
+                  className="px-3 py-1 text-[11px] text-cloud bg-bamboo hover:bg-bamboo-light rounded-lg transition-all cursor-pointer font-medium"
+                >
+                  {t("common.save", { defaultValue: "保存" })}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Tile
+              title={tileTitle || undefined}
+              content={content}
+              color={tileColor}
+              fontSize={surfaceFontSize}
+              renderMarkdown={true}
+              imageBaseDir={imageBaseDir ?? undefined}
+              width="100%"
+              className="h-full cursor-default"
+              data-surface-mode={surfaceMode}
+              data-context-menu="tile"
+              data-note-id={tileNoteId}
+              onMouseDown={handleDrag}
+              onDoubleClick={tileViewMode === "live" ? () => setTileViewMode("edit") : handleTileDoubleClick}
+            >
+              {/* Mode toggle */}
+              <button
+                type="button"
+                aria-label="切换模式"
+                title={
+                  tileViewMode === "preview"
+                    ? t("notepad.tooltip.livePreviewMode", { defaultValue: "实时预览 Markdown（分屏）" })
+                    : tileViewMode === "live"
+                      ? t("notepad.tooltip.editMode", { defaultValue: "编辑模式" })
+                      : t("notepad.tooltip.previewOnlyMode", { defaultValue: "纯预览模式" })
+                }
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() =>
+                  setTileViewMode(
+                    tileViewMode === "preview" ? "live" : tileViewMode === "live" ? "edit" : "preview",
+                  )
+                }
+                className="absolute top-2 left-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-paper-warm/80 text-ink-ghost/70 hover:text-ink-soft hover:bg-paper-warm transition-colors cursor-pointer"
+              >
+                {tileViewMode === "preview" ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                ) : tileViewMode === "live" ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
+                )}
+              </button>
+              <button
+                type="button"
+                aria-label="取消钉屏"
+                title="取消钉屏"
+                onMouseDown={(event) => event.stopPropagation()}
+                onClick={() => void handleClose()}
+                className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full text-ink-ghost/70 hover:text-red-400 hover:bg-danger-bg/80 transition-colors cursor-pointer"
+              >
             <svg
               width="12"
               height="12"
@@ -710,7 +762,9 @@ export function NotePad({
           </button>
           <SurfaceResizeHandles />
         </Tile>
-      ) : (
+    )}
+  </>
+) : (
         <div className={padSurfaceClassName} data-surface-mode={surfaceMode}>
           <>
             <div
